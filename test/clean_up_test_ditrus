@@ -1,0 +1,17 @@
+#!/usr/bin/env bash 
+
+
+# keep this out of the path, it's kinda simple minded and killy
+ 
+bncwd=$(basename $(pwd))
+
+if [ "$bncwd" == "testcases"  ] ; 
+then 
+	rm *.out *.lists *.diff
+elif [ "$bncwd" == "test" ] ; 
+then
+	rm rl.*out rl.*.list rl.*.lumped rl.*.diff 
+else
+	echo " For saftey reasons, we are not running this command out of the test or test cases directories"
+fi
+

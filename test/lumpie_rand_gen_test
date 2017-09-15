@@ -1,0 +1,36 @@
+#!/usr/bin/env bash 
+
+
+set -e
+
+#
+#
+# 	generate some rand lumps.
+# 	generate the list files with explodie. 
+#	lump them, expand them again, lump them agian. 
+#	
+#
+
+echo "TAP version 13"
+echo "1..N"
+
+for i in `/usr/bin/seq 1 30 `
+do
+	
+	gen_rand_lump 25 > rl.$i.testvec.l1.lumped
+
+	explodie rl.$i.testvec.l1.lumped | sort  > rl.$i.testvec.e1.list 
+	/usr/bin/time -v lumpie rl.$i.testvec.e1.list 2> rl.$i.time-v.out | sort  > rl.$i.testvec.l2.lumped 
+	explodie rl.$i.testvec.l2.lumped | sort > rl.$i.testvec.e2.list  
+
+	if diff -u rl.$i.testvec.e1.list rl.$i.testvec.e2.list > rl.$i.testvec.diff
+	then 
+		echo  "ok # test $i lines in list " $(wc -l rl.$i.testvec.e2.list)
+	else
+		echo "not ok # $i" 
+		echo "  review the rl* files" 
+		cat rl.$i.testvec.diff | sed 's/^/  /g' 
+
+	#	exit 3; 
+	fi
+done

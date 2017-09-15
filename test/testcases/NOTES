@@ -1,0 +1,10 @@
+
+	
+explodie takes () [] {} 
+lumpy only produces () ,  I would like [] and it should be paramiterizable... and tested. 
+
+explodie takes (-) or (/) or (:) or (\) or (/) for range specifications.  I like - , and it should be tested
+
+overlapping parens are illdefined or undefined 
+e.g.   alph(a,b,c,[k,l,m),Z,w,d].com
+

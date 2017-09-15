@@ -1,0 +1,78 @@
+#!/usr/bin/env bash 
+
+
+# given an executable, regress through the test cases. 
+
+CMD="$1" ; shift; 
+if [ "$CMD" == "" ] ; then 
+	CMD="lumpie"
+fi
+
+echo "TAP version 13"
+echo "1..N"
+
+
+#if [ ! -e "$CMD" ] ; then  
+#	echo "Bail out!"
+#	echo " the cmd ($CMD) does not seem to exist, quiting\n"
+#	exit 2;
+#fi
+
+
+FAIL="no"
+
+for i in testcases/lumpie.simple.*.list
+do
+	# echo $i 
+
+	$CMD $i | sort > $i.test.out
+	RC="$?"
+
+	if [ "0" != "$RC" ] ; then 
+		echo "Bail out! # ($CMD) returned not okay ($RC)" 
+		exit 2;
+	fi
+
+	J=$(echo $i | sed "s/list/lumped/g") 
+	#  echo "result file ($J)"	
+	
+	if [ -f $J ] ; then 
+		sort $J | uniq > $J.exemplar.out 
+		if diff -u $J.exemplar.out $i.test.out  > $i.test.out.lump.diff
+		then
+			explodie $i.test.out | sort > $i.test.out.lists
+			sort $i | uniq >  $i.exemplar.lists
+
+			if diff -u $i.exemplar.lists $i.test.out.lists >  $i.test.out.diff
+			then 
+				echo "ok # $i"
+			else
+				echo "not ok # $i lists differ see diff"
+				cat $i.test.out.diff | sed "s/^/  /g"
+				FAIL="yes"
+			fi
+		else
+			echo "not ok # $i lumps differ (may be okay) see diff"  
+			cat $i.test.out.lump.diff | sed "s/^/  /g"
+			FAIL="yes"
+		fi
+	else 
+		echo "not ok # $i "
+		echo "   The test case failed ... there is no exploded file"
+		FAIL="yes"
+	fi
+
+	# rm $i.test.out
+
+
+done
+
+
+if [ "yes" == "$FAIL" ] ;
+then
+        exit 1
+else
+        exit 0
+fi
+
+

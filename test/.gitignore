@@ -1,0 +1,6 @@
+*.out
+*.lists
+rl.*out
+rl.*.list
+rl.*.lumped
+rl.*.diff 

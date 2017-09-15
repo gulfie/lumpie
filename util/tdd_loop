@@ -1,0 +1,3 @@
+#!/usr/bin/env sh 
+
+ watch "echo 'lumpie' ; lumpie_regress ; echo 'explodie' ; explodie_regress" 

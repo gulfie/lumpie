@@ -1,0 +1,86 @@
+#!/usr/bin/env perl 
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+
+# 
+# come up with some random things that may be lumps..
+#
+
+my @validchars; 
+@validchars = ( ',', qw( a b c d 0 1 2 3 4 5 6 7 8 9 - : / \ { } ( ) [ ] . _ ) ); 
+
+	# focus more on the ranges less on alternate forms
+@validchars = ( ',', qw( a b c  0 1 2  ( ) . - _ ) ); 
+
+
+my $n;
+$n = $ARGV[0] || 1;
+
+while ($n> 0){
+
+	my $cnt = 1 + int(rand(20)); 
+
+	print map { 
+		$validchars[int(rand($#validchars))]; 
+	} 1 .. $cnt; 
+	print "\n";
+
+	$n--;
+}
+exit 0;
+
+
+sub rand_range{
+	my $ret = "(1-2)";	
+
+	my ($low,$high) = (int(rand(4)));
+	$high = $low + 1 + (int rand(4)); 
+	my ($digits) = (int(rand(5))); 
+
+	$low = 1 * $low;
+	$ret = "(" . sprintf("\%.${digits}d-\%d", $low, $high ) .")";
+
+
+	$ret;
+}
+
+sub rand_lump{
+	my ($n) = @_; 
+	my $ret;
+
+	$ret = join "", map { 
+		if(int(rand(2))){
+			if (int(rand(2))){
+				if(int(rand(3))){
+					"-";
+				}else{
+					"_";
+				}
+			}else{
+				"."; 
+			}
+		}elsif(int(rand(2))){
+			join "", map { 
+				chr(ord('G')+int(rand(5))); 
+			} 1 .. 1+ int(rand(5))
+		}elsif(int(rand(2))){
+			join "", map { 
+				chr(ord('a')+int(rand(5))); 
+			} 1 .. 1+ int(rand(5))
+		}else{
+			rand_range(); 
+		}
+	} 1 .. $n; 
+
+	# .. is not allwed. 
+	$ret =~ s/\.+/./g; 
+
+	$ret;
+}
+
+
+print rand_lump(int(rand(10))+4); 
+print "\n";

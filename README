@@ -1,0 +1,19 @@
+
+SETUP : 
+	probably want to set your path to 
+
+	export PATH="$(pwd)/test:$(pwd)/util:$PATH"
+
+	then for the version that is being worked on:
+
+	export PATH="$(pwd)/src/perl5_bubble:$PATH"	
+
+
+TODO : 
+	choose a disipline for how parts of the directory tree find each other. 
+
+	e.g. tdd_loop expects to be run in the test dir... so $LUMPIEDEVROOT might be right. 
+
+
+
+

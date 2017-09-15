@@ -1,0 +1,149 @@
+#!/usr/bin/env perl 
+
+
+#
+#
+# 	this implementation is more forgiving of strange texts and simply expands things that look like ranges... that's probably okay
+#
+#
+#	nested parenthisis, really don't work well. e.g.
+# 	(revproxy(001-3),db(05-7)).prod.example.com
+#
+#
+
+
+#TEXTPART =>  (a-zA-Z0-9\_\-\.)+  
+#RANGESEPERATOR =>  '-' | '/'     			# no idea why people like this syntax
+#NUMRANGEINNER =>  (0-9+ RANGESEPERATOR 0-9+)        # first index may have leading 0's to set # of digits, first index lower or equal to later index
+#PARTRANGEINNER =>  TEXTPART
+#
+#RANGE =>  '{' ( NUMRANGEINNER | PARTRANGEINNER ) [ ',' ( NUMRANGEINNER | PARTRANGEINNER ) ] '}'   # or '('')' or '[' ']' 
+#
+#EXPLODIETHING => [ TEXTPART | RANGE ]+
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+
+my $debug;
+$debug =1;
+$debug =0;
+
+sub d{
+        if ($debug){
+                print @_;
+        }
+}
+
+
+
+# practical considerations...
+# whitespace? does it matter? 
+
+my $line;
+
+
+sub expandrange{
+	my ($txt) = @_; 
+	my @outparts;
+
+
+	@outparts = map { 
+		my $p = $_;
+		if ($p =~ /\A(\d+)(-|:|\/|\\)(\d+)\Z/){
+			my ($begin,$end) = ($1,$3);
+			my $beginlen = length($begin);
+			d("$begin .. $end\n");
+			map { sprintf("\%.${beginlen}d", $_); }  ( 1* $begin .. $end ) ; 
+		}else{
+			($p);
+		}
+
+	} split /,/ , $txt;
+
+	d("outparts = " . Dumper(\@outparts). "\n");
+
+	@outparts;
+}
+
+
+sub explodieline_nope{
+	my ($intxt) = @_; 
+	my @outlines;
+
+	# this could probably be done more efficently
+	# 
+	##my $innerre = qr/(\d+-\d+|((a-zA-Z0-9)( / ; 
+	# we may need to fully regex out the inner part
+	#if ( $intxt =~ /\A(.*?)\(([^(]+?)\)(.*)\Z/ 
+	if ( $intxt =~ /\A(.*?)\(([^(]+?)\)(.*)\Z/ 
+	#        || $intxt =~ /\A(.*?)\((\d+-\d+)\)(.*)\Z/ # number one. , add the different range chars 
+	#	|| $intxt =~ /\A(.*?)\(([a-zA-Z\-.\_0-9]+(?:,[a-zA-Z\-.\_0-9]+)*)\)(.*)\Z/   # attempt at a set. 
+	#	|| $intxt =~ /\A(.*?)\(([^(,]+?)\)(.*)\Z/
+		|| $intxt =~ /\A(.*?)\[([^\[]+?)\](.*)\Z/  
+		|| $intxt =~ /\A(.*?)\{([^{]+?)\}(.*)\Z/ ){
+
+		my ($pre,$inner,$post) = ($1,$2,$3); 	
+		d("intxt [$intxt]\n");
+		d("pip ($pre | $inner | $post)\n");
+		push @outlines , map { 
+			my $r = $_; 
+			d("r ($r)\n");
+			explodieline($pre . $r . $post);
+		} expandrange($inner); 
+	}else{
+		$intxt =~ s/\n//;
+		push @outlines , $intxt;
+	}
+
+	d("outlines (".Dumper(\@outlines).")\n");		
+	@outlines;
+}
+
+
+#
+#
+# a more proper parser is needed to support nested set notation.
+#
+#
+sub explodieline{
+	my ($intxt) =@_; 
+	my @outlines; 
+	my (@linepile); 
+	push @linepile , $intxt; 
+
+	# print "what\n";
+
+	while (@linepile){
+	#	print "i\n";
+	#	print(" ip : ". Dumper(\@linepile) ."\n");
+		my ($line)= shift @linepile; 
+		# print("line : ($line)\n");
+
+		if($line =~ /\A(.*?)\(([^(]+?)\)(.*)\Z/ ){ 
+			my ($pre,$inner,$post) = ($1,$2,$3); 	
+		#	d("pip ($pre | $inner | $post)\n");
+			unshift @linepile , map { 
+				my $r = $_; 
+		#			d("r ($r)\n");
+				$pre . $r . $post ;
+			} expandrange($inner); 
+			
+		}else{
+	#		print " <out [$line]\n"; 
+			push @outlines, $line;
+		}
+	#	print "  outlines : " . Dumper(\@outlines) ."\n\n";
+	}
+
+	@outlines;
+} 
+
+
+while (defined ($line = <>)){
+	$line =~ s/\n\Z//; 
+	print map { $_ . "\n" } explodieline($line);	
+}
+
+

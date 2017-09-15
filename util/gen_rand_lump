@@ -1,0 +1,69 @@
+#!/usr/bin/env perl 
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+
+# 
+# come up with some random lumps
+#
+
+
+
+sub rand_range{
+	my $ret = "(1-2)";	
+
+	my ($low,$high) = (int(rand(4)));
+	$high = $low + 1 + (int rand(4)); 
+	my ($digits) = (int(rand(5))); 
+
+	$low = 1 * $low;
+	$ret = "(" . sprintf("\%.${digits}d-\%d", $low, $high ) .")";
+
+
+	$ret;
+}
+
+sub rand_lump{
+	my ($n) = @_; 
+	my $ret;
+
+	$ret = join "", map { 
+		if(int(rand(2))){
+			if (int(rand(2))){
+				if(int(rand(3))){
+					"-";
+				}else{
+					"_";
+				}
+			}else{
+				"."; 
+			}
+		}elsif(int(rand(2))){
+			join "", map { 
+				chr(ord('G')+int(rand(5))); 
+			} 1 .. 1+ int(rand(5))
+		}elsif(int(rand(2))){
+			join "", map { 
+				chr(ord('a')+int(rand(5))); 
+			} 1 .. 1+ int(rand(5))
+		}else{
+			rand_range(); 
+		}
+	} 1 .. $n; 
+
+	# .. is not allwed. 
+	$ret =~ s/\.+/./g; 
+
+	$ret;
+}
+
+
+my $n; 
+$n = $ARGV[0] || 1; 
+while ($n> 0){
+	print rand_lump(int(rand(12))+4); 
+	print "\n";
+	$n--;
+}

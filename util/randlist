@@ -1,0 +1,23 @@
+#!/usr/bin/env perl 
+
+
+# randomize a list of perl's <> 
+
+# quite possibly not as arandom as one might like.
+
+use strict; 
+use warnings;
+use POSIX qw(floor);
+
+
+my @lines; 
+
+@lines = <>; 
+
+while (@lines){ 
+	my $cnt = scalar @lines; 
+	my $line = splice(@lines,  int floor(rand ($cnt)) , 1);
+	print $line; 
+}
+
+

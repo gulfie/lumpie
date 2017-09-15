@@ -1,0 +1,9 @@
+revproxy(001-5)(a,b,c).(chi,rus,sea,tak).prod.example.com
+web(1-30)(a,b,c).(chi,rus,sea,tak).prod.example.com
+db(01-3)(a,b,c).(chi,rus,sea,tak).prod.example.com
+revproxy(001-2)(a,b,c).(burn,fire,smoke).qa.example.com
+web(1-2)(a,b,c).(burn,fire,smoke).qa.example.com
+db(01-2)(a,b,c).(burn,fire,smoke).qa.example.com
+revproxy(001-2)a.(brook,river,stream).dev.example.com
+web(1-2)a.(brook,river,stream).dev.example.com
+db01a.(brook,river,stream).dev.example.com

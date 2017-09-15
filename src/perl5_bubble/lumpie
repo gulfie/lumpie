@@ -1,0 +1,748 @@
+#!/usr/bin/env perl 
+
+
+#
+#
+# see explodie for spec.
+#
+#
+# 	This is hurristic atempt at an unsolvable problem. 
+# 	the aproach is to break the names apart, sort them and let them group with adjacent 
+#	elements.  The datastructure is one dimentional, thus adjacency is at a premium and 
+#	sometimes it doesn't work out the best.  The best is not well defined from a human ui standpoint
+#
+#	The best thing you can say about a program is that it works, and we needed a functionalish
+#	reference implementation
+#
+
+
+use strict;
+use warnings;
+use Data::Dumper;
+use List::Util qw(min max);
+
+
+my $debug;
+$debug =1;
+$debug =0;
+
+sub d{
+	if ($debug){
+		print @_;
+	}
+}
+
+
+
+sub isposint{
+	my ($txt) = @_;
+	my $r = 0; 
+
+	if (ref $txt eq '' && $txt =~ /\A(\d+)\Z/){
+		$r = 1;
+	}
+	$r;
+}
+
+
+sub mycompare{
+	my ($a,$b) = @_; 
+	my $r;
+	# d "myc\n";
+
+
+	if (defined $a){
+		if (defined $b){
+			my ($ar,$br) = (ref $a, ref $b);
+			if ($ar cmp $br){
+				$r = 1;
+			}else{
+				if ('' eq $ar){
+					$r = $a cmp $b; 
+				}elsif('ARRAY' eq $ar){
+					my $i = 0; 
+					my ($acnt,$bcnt); 
+					$acnt = @$a; 
+					$bcnt = @$b; 
+					if ($acnt == $bcnt){
+						while (exists $$a[$i] && not defined $r){
+							my $tmp; 
+							$tmp = mycompare($$a[$i],$$b[$i]);
+							if (not defined $tmp or $tmp){
+								$r=1 ;
+							}
+							$i++;
+						}	
+						if (not defined $r){
+							$r = 0;
+						}	
+					}else{
+						$r =1;
+					}
+				}elsif('HASH' eq $ar){
+					# keys must be same and values must be same. 	
+					my @akeys; 
+					my @bkeys;
+					@akeys = keys %$a; 
+					@bkeys = keys %$b; 
+					if (@akeys != @bkeys){
+						$r =1;
+					}else{
+						my $isdiff =0;
+						my $i =0; 
+						while (exists $akeys[$i] and exists $$a{$akeys[$i]} and not defined $r){
+							my $ak = $akeys[$i];
+							if (not exists $$b{$ak}){
+								$r =1;
+							}else{
+								my $tmp;
+								
+								$tmp = mycompare($$a{$ak},$$b{$ak}); 
+								if (defined $tmp && $tmp){
+									$r =1;
+								}
+							}
+							$i++;
+						}
+						if (not defined $r){
+							$r =0;
+						}
+					}
+		
+				}else{
+					die("unhandled type of ($ar) in mycompare\n");
+				}
+			}
+			
+		}else{
+			$r = 1;
+		}
+	}else{
+		if (defined $b){
+			$r=1;
+		}else{
+			$r=0; 
+		}
+	}
+
+	$r;		
+}
+
+
+
+sub sortandremoveduplicates{
+	my %tmpset;
+	map { 
+		$tmpset{$_} = 1;
+	} @_;	
+	
+	sort keys %tmpset;
+}
+
+
+sub dump_splitlines{
+	d "DUMPING SPLITLINES\n";
+	map { 
+		d map { " $_ " } @$_; 
+		d "\n";
+	} @_;
+}
+
+
+
+#
+# we may have reached the end of the line with this.
+# There may be too many sub populations to keep strait
+#
+sub sort_splitlines{
+	my (@splitlines) = @_;	
+
+
+	@splitlines = sort { 
+		# lexicly compare each element in turn. 
+		# ... and now we need to compare ranges as well ... or maybe not.
+		my $r = 0; 
+		my $i = 0; 
+		my ($acnt,$bcnt); 
+		$acnt = @$a; 
+		$bcnt = @$b; 
+		if ($acnt != $bcnt){
+			$r = $acnt <=> $bcnt; 
+		}
+		
+		while (exists $$a[$i] && exists $$b[$i] && 0 == $r){
+			my ($as,$bs) = ($$a[$i],$$b[$i]); 
+			my ($ar,$br) = (ref $as, ref $bs);
+			my ($an,$bn) = ( isposint($as), isposint($bs)); 
+
+			if ($ar eq '' and $br eq ''){ 
+				if ($an) { 
+					# this'll need some work... 001 and 1 need to be clumped seperately. 
+					if ($bn){
+						#$r = $as cmp $bs ; 
+						my ($alz,$blz) = ( $as =~ /\A0\d/ , $bs =~ /\A0\d/);  # is leading zeros
+			#			print ("alz blz ($alz/$blz) ($as,$bs)");
+						if ($alz xor $blz){
+							$r  = $as cmp $bs;
+						}else{
+							# reversing this gets it stuck not doing the right joining.
+							#$r = $bs <=> $as ; 
+							$r = $as <=> $bs ; 
+						}
+			#			print "    $r\n";
+					}else{
+						$r = $as cmp $bs;
+					}
+				}else{
+					if ($bn){
+						$r = $as cmp $bs;
+					}else{
+						my ($ar,$br) = (ref $as, ref $bs); 
+						$r = $as cmp $bs; 
+				#		$r = mycompare($as,$bs);
+					}
+				 }		
+			}else{
+				# more complicated places. 
+				#$r = mycompare($as,$bs);	
+
+				#ick slow, icky.. and back to stability, hacky solution for the moment. 
+				# better would be get a deep cmp worked out.
+				local $Data::Dumper::Sortkeys = 1; 
+				my ($ast,$bst); 
+
+				$ast = Dumper($as); 
+				$bst = Dumper($bs);
+		#		print " ast/bst ($ast/$bst)\n";
+				$r = $ast cmp $bst;  
+			}
+			$i++;
+		}
+		
+
+		if (0 == $r){
+			if (exists $$a[$i] ){ 
+				if (not exists $$b[$i]){
+					$r = 1; 
+				}
+			}else{
+				$r = -1;
+			}
+		}
+
+		$r; 
+	} @splitlines;
+
+	if ($debug){
+		d "POST SORTED\n";
+		dump_splitlines(@splitlines);
+	}
+	@splitlines;
+}
+
+sub expandrange{
+        my ($txt) = @_; 
+        my @outparts;
+
+
+        @outparts = map { 
+                my $p = $_;
+                if ($p =~ /\A(\d+)(-|:|\/|\\)(\d+)\Z/){
+                        my ($begin,$end) = ($1,$3);
+                        my $beginlen = length($begin);
+                        d("$begin .. $end\n");
+                        map { sprintf("\%.${beginlen}d", $_); }  ( 1* $begin .. $end ) ; 
+                }else{
+                        ($p);
+                }
+
+        } split /,/ , $txt;
+
+        d("outparts = " . Dumper(\@outparts). "\n");
+
+        @outparts;
+}
+
+
+#
+#
+# a more proper parser is needed to support nested set notation.
+#
+#
+sub explodieline{
+        my ($intxt) =@_; 
+        my @outlines; 
+        my (@linepile); 
+        push @linepile , $intxt; 
+
+        # print "what\n";
+
+        while (@linepile){
+        #       print "i\n";
+        #       print(" ip : ". Dumper(\@linepile) ."\n");
+                my ($line)= shift @linepile; 
+                # print("line : ($line)\n");
+
+                if($line =~ /\A(.*?)\(([^(]+?)\)(.*)\Z/ ){ 
+                        my ($pre,$inner,$post) = ($1,$2,$3);    
+                #       d("pip ($pre | $inner | $post)\n");
+                        unshift @linepile , map { 
+                                my $r = $_; 
+                #                       d("r ($r)\n");
+                                $pre . $r . $post ;
+                        } expandrange($inner); 
+                        
+                }else{
+        #               print " <out [$line]\n"; 
+                        push @outlines, $line;
+                }
+        #       print "  outlines : " . Dumper(\@outlines) ."\n\n";
+        }
+
+        @outlines;
+} 
+
+
+sub splitline2flat{
+	my ($l) = @_;
+	my $line; 
+	d "s2f : " .Dumper($l). "\n";
+
+	$line = join "" , map { 
+		my $part =$_; 
+
+		if ('HASH' eq ref $part){
+			my $digits = $$part{'digits'};
+		# paramiterize paren type..
+			# for compactness and lack of redundant information, the high side doesn't get zero padded.
+			sprintf("(\%.${digits}d-\%.d)", $$part{'low'},$$part{'high'});
+		}elsif('ARRAY' eq ref $part){
+			# simple set. 
+			"(" . ( join "," , sort @$part ) .")"; 	
+		}else{
+			$part;
+		}
+	} @$l; 
+
+	d "      line : $line\n";
+	$line;
+}
+
+# these are lists of parts, parts being the ranges and texts. 
+# if they go together, awesome. if not, nuts 
+
+# conjoin takes to lists...
+# $a,$b was a less than perfect var name choice...
+sub conjoin{
+	my ($a,$b) = @_; 
+	my ($acnt,$bcnt); 
+	my $ret; 
+
+	$acnt = @$a; 
+	$bcnt = @$b; 
+
+#	d "cj : $acnt $bcnt \n";
+#	d "cj : ", Dumper($a,$b),"\n";
+
+	if (0 == $acnt && $acnt == $bcnt){
+		$ret = [];	
+	}elsif($acnt == $bcnt){
+		# lengths the same. ( this check could be in the caller, so we don't do it each recursion )
+		my ($ar,$br);
+
+		my ($as,$bs) = (shift @$a, shift @$b); # remember to put them back.
+		$ar=  ref $as;
+		$br=  ref $bs;
+
+		#print "pink\n";
+		my $doesabconjoin;
+		
+		$doesabconjoin = conjoin([@$a],[@$b]);
+
+		if(defined $doesabconjoin){
+			if($ar eq 'HASH'){
+				if ($br eq 'HASH'){
+					# ignore for now.
+					# now we can no longer ignore them. 
+					my $mycmpr = mycompare($as,$bs); 
+					if (0 == $mycmpr){ # identical , duplicate squashing case?
+						if (0){
+						my $tmp; 
+						$tmp = conjoin($a,$b);
+	#					print "foobar : " . Dumper($as,$bs)."\n";
+						if ( defined $tmp){
+							$ret = [ $bs , @$tmp ]; 	
+						}
+						}else {
+							$ret = [ $bs , @$doesabconjoin ]; 	
+						}
+					}else{
+						# are the ranges overlaping? If constructivly, wen can
+						my ($alow,$ahigh) = ($$as{'low'}, $$as{'high'});
+						my ($blow,$bhigh) = ($$bs{'low'}, $$bs{'high'});
+		
+						d("a ($alow,$ahigh)  b($blow,$bhigh)\n");
+						d("  ad ($$as{'digits'})  bd($$bs{'digits'})\n");
+						if($ahigh + 1  < $blow or $bhigh +1 < $alow ){
+							d("distinct regions... no overlap, not adjacent\n");
+						}elsif( ( $alow <= $blow and $$bs{'digits'} < $$as{'digits'})
+							or ( $blow <= $alow and $$as{'digits'} < $$bs{'digits'}) ){ 
+							d("leading zero digits don't match up\n");
+						}elsif( defined $doesabconjoin){ # 0 == mycompare($a,$b)){
+							
+							d("regions not distinct... \n");
+
+							
+							my $tmp; 
+							# $tmp = conjoin($a,$b);
+							$tmp = $doesabconjoin; 
+
+							if ( defined $tmp){
+								d("   everything seems good, conjoining\n");	
+								my ($newlow,$newhigh,$newdigits);
+								$newlow = min($alow,$blow);
+								$newhigh = max($ahigh,$bhigh);
+	
+								if ( $alow < $blow ){ 
+									$newdigits = $$as{'digits'};
+								}else{
+									$newdigits = $$bs{'digits'};
+								}
+									
+								$ret = [ { 'low'=>$newlow, 'high' => $newhigh , 'digits' => $newdigits } , @$tmp ];
+							}
+						}
+
+					}
+				}else{
+					# can we combine this range with this value? 
+					# 1) are the rest of the stacks identical? 
+					# 2) is the leading zero leading compatable? 
+					# 3) is the number adjacent? if so, yes! 
+
+
+					if ($as eq $bs){ # e.g. com
+						my $tmp;
+						#$tmp = conjoin($a,$b); 
+						$tmp = $doesabconjoin;
+						if (defined $tmp){
+							$ret = [ $as , @$tmp ];
+						}
+					}elsif(isposint($bs)){ # 'k' won't go well into that. 
+						if (0 == mycompare($a,$b)){
+							my $bdigits = length $bs; 
+							if ($$as{'digits'} <= $bdigits){
+								if ( $bs >= $$as{'low'} -1 and  $bs <= $$as{'high'} +1  ){
+									# these combine.
+									my $newas; 
+									$newas = {%$as};  # copy for safty / sanity
+									$$newas{'high'} = max($bs , $$as{'high'}); 
+									$$newas{'low'} = min($bs, $$as{'low'}); 
+									$$newas{'digits'} = min(length($bs),$$as{'digits'}); 
+										 
+									$ret= [ $newas , @$a ] ;  # copy it?
+								}	
+							}
+						}
+					}
+				}
+			}elsif($ar eq 'ARRAY'){
+				# first attempt at set extraction, e.g. {duck,crow,swan}
+				# composition rules are different for sets.. 
+				# conjoining in one place doesn't mean you can conjoin at another.. 
+				if ($br eq '' and $bs =~ /\A[a-zA-Z]+\Z/){
+					if (0 == mycompare($a,$b)){ # deep compare of everything else
+						$ret = [ [ sortandremoveduplicates (  @$as , $bs )  ] , @$doesabconjoin ] ;  # deep copies?	
+					}
+				}elsif($br eq 'ARRAY'){
+					# now we have a safty catch at the bottom, we can do questionable things here.
+			
+			#		if (0 == mycompare($a,$b)){ # deep compare of everything else
+						$ret = [ [ sortandremoveduplicates (  @$as , @$bs )  ] , @$doesabconjoin ] ;  # deep copies?	
+			#		}
+				}
+			}else{
+				if ($br eq 'HASH'){
+					# ignore for now
+					# can't igore anymore... 
+					$ret = conjoin([$bs,@$b] ,[ $as,@$a] );
+				}elsif($br eq 'ARRAY'){
+					# ignore for now ( may not be needed due to sorting... 
+					#$ret = conjoin($b,$a);
+					$ret = conjoin([$bs,@$b] ,[ $as,@$a] );
+				
+				}else{ # both are not hashes (ranges) or arrays (sets)... so lets do something
+					# simple case of two non ranges possibly getting putinto one range. 
+
+					# everything else besides this one as/bs is the same.
+					# 
+				# tail recursion would be so much better I'd think.
+					if ($as eq $bs){
+						my $tmp;  
+						# remove duplicate conjoins. 
+						# $tmp = conjoin($a,$b); # minus the shifted..
+						$tmp = $doesabconjoin;
+						if (defined $tmp){
+							$ret = [ $as , @$tmp ] ; 
+						}
+					}else{
+		#				print "compareis in a loop\n";
+						if (0==mycompare($a,$b)){
+
+							my ($an,$bn) = ( isposint($as), isposint($bs)); 
+
+							#d "an/bn ($an/$bn)\n";
+							#d "as/bs ($as/$bs)\n";
+
+							if ($an) { 
+								if ($bn){
+									my ($adigits,$bdigits) = ( length($as), length($bs));
+									if ($as +1 == $bs){
+										$ret = [ { 'digits' => $adigits , 'low' => $as , 'high' => $bs } , @$a ]; 	
+		#								d "sproing : " , Dumper($ret) , "\n";
+									}
+								}
+							}else{  # building the set case.
+								if (not $bn){ 
+									# canidate for set notation.
+									# for human readable huristics... only etxt please
+									if ($as =~/\A[a-zA-Z]+\Z/ and $bs =~ /\A[a-zA-Z]+\Z/){
+										$ret = [ [ $as,$bs ] , @$a ] ;  # probaly should deep copy
+									}
+								}
+							}
+						}
+					}
+				}
+			}	
+		}# does ab conjoin?
+	
+		unshift @$a , $as; 
+		unshift @$b , $bs; 
+
+	}
+
+	# check and balance, only emit a conjoined thing, if we get the same set of records from the resulting conjoin
+	# (expensive and required due to shoddy combining logic )  FIX? 
+	# 
+	# splitline2flat
+
+
+	if (defined $ret){
+		my %ref; 
+		my %forret;
+
+		map { 
+			$ref{$_} =1;	
+		} (explodieline(splitline2flat($a)),explodieline(splitline2flat($b))); 
+	
+		map { 
+			$forret{$_} =1;
+		} (explodieline(splitline2flat($ret))); 
+
+	#	d " ref forret : " . Dumper(\%ref,\%forret) ."\n\n";
+
+		if (0==mycompare(\%ref,\%forret)){
+			d("Good return for conjoin\n");
+		}else{
+			d("bad return for conjoin : fixing\n");
+		#	d( Dumper($a,$b,$ret) ."\n");
+			$ret = undef;  # we don't want it to do that. 
+		}
+	}
+
+	d "cjr ", Dumper($ret),"\n";
+	$ret;
+}
+
+
+sub conjoin_array_ischanged{
+	my ($array) = (@_);
+	my $ischanged = 0;
+
+	my $i = 0; 
+	while (exists $$array[$i] && exists $$array[$i+1]){
+		d "i ($i)\n";
+
+		my $joinedrec; 
+		$joinedrec = conjoin($$array[$i],$$array[$i+1]); 
+
+		if (defined $joinedrec){
+			# remove $i and $i+1; 
+			d "joinery\n";
+			$$array[$i] = $joinedrec; 
+			splice(@$array, $i+1 , 1);
+			$ischanged = 1;
+		}else{
+			$i++;
+		}
+	}
+	# bubble together the like things.
+	d("bop2\n");
+	$ischanged;
+}
+	
+
+#
+#
+# read them up, mush them around utnil they are next to like ones, then mush the light ones together. 
+#	bubble sort but with combining things rather than sorting... though there is a fair amount of sorting as well.
+#
+sub main { 
+
+	my @lines; 
+		# some insureance about duplicates 
+
+	@lines = sortandremoveduplicates(<>); 
+
+	d("lines are in\n");
+
+	# 
+	#
+	my @splitlines;
+	@splitlines = map { 
+		my @parts;
+		my $line =$_; 
+
+		$line =~ s/\n\Z//;	
+
+		@parts = reverse split /\b|(?<=\d)(?!\d)|(?<!\d)(?=\d)/ , $line; 
+		# print Dumper(\@parts); 
+		[@parts]; 
+	} @lines; 
+
+	d("lines initally split\n");
+
+	d("about to sort splits\n");
+	@splitlines = sort_splitlines(@splitlines);
+
+	d("sort spliting worked\n");
+
+	#d Dumper(\@splitlines);
+
+	my $changed =1;
+
+
+
+	my $looptimes = 0;
+
+	while ($changed){
+		$changed =0; 
+		
+		d("trip around the big loop ($looptimes)\n");
+		$looptimes++;
+
+		while (conjoin_array_ischanged(\@splitlines)){
+			$changed =1;
+			d("brush\n");
+		}
+
+		# this is hear to get the case of ftp(01-3).blue.dc(06-7)
+		
+		# hopefully this'll be somewhat rare...
+		# inside out.
+		# d Dumper(\@splitlines);
+		d "REVERSE THEM! \n";
+
+
+		@splitlines = map { 
+			[ reverse @$_ ] 
+		} @splitlines; 
+
+		# d Dumper(\@splitlines);
+
+		@splitlines = sort_splitlines(@splitlines);
+		
+		while (conjoin_array_ischanged(\@splitlines)){
+			$changed =1;
+		}
+
+		d("brush_backwards\n");
+		$debug and dump_splitlines(@splitlines);
+
+		# d Dumper(\@splitlines);
+		d "Putting them back...\n";
+		# d Dumper(\@splitlines);
+		# back right side (backwards) out again.
+		@splitlines = map { 
+			[ reverse @$_ ] 
+		} @splitlines; 
+
+
+		# now try the n*n walk once. 	
+		# sooooo slow..for large values of n, though it's done after some inital lumps...
+sub conjoin_array_nxn_ischanged{
+	my ($arrayref) = @_; 
+	my @retpile; 
+	my $changed =0;
+
+	my @pile;
+	@pile = (@$arrayref);
+
+	while (@pile){
+		my $cur; 
+		$cur = shift @pile; 
+		my $done =0; 
+		my $i = 0; 
+
+		while (exists $pile[$i]){ 
+			my $tmp; 
+			$tmp = conjoin($cur , $pile[$i]); 
+			
+			if (defined $tmp){
+					d("JOINED IN NX GROOM ($i)\n" . Dumper($cur, $pile[$i],$tmp));
+					$done =1;
+					splice(@pile,$i,1);
+					#unshift @pile, $tmp; 
+					$cur = $tmp; 
+					$changed =1;
+			}else{
+				d("not joined in NXN groom($i)\n" . Dumper($cur, $pile[$i],$tmp));
+				$i++; 
+			}
+		}
+
+		push @retpile , $cur;
+	}
+
+	@$arrayref = @retpile; 
+	$changed; 
+}
+
+		while(conjoin_array_nxn_ischanged(\@splitlines)){
+			$changed =1;
+		} 
+
+		@splitlines = reverse @splitlines;
+
+		while(conjoin_array_nxn_ischanged(\@splitlines)){
+			$changed =1;
+		} 
+
+		@splitlines = sort_splitlines(@splitlines);	
+		d("bigloop bottom\n");
+	}
+
+
+	my @linesout; 
+
+	#print " about to out \n";
+	#	$debug and dump_splitlines(@splitlines);
+	#print "now to the out\n";
+	#
+
+	@linesout = map { 
+		my ($l) = $_; 
+		my $line; 
+	
+		$line = splitline2flat([reverse @$l]);
+		$line ."\n";
+	} @splitlines;
+
+	print @linesout;
+}
+
+main();
+
+		
+

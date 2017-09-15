@@ -1,0 +1,9 @@
+
+
+An itterative rather than a tree based approach for lumpie. 
+
+A simple though ambiguous with respect to definitions explodie.  e.g. what should a.b(1-3,[ aka,bka)  ].com result in?   garbage. 
+
+
+This is a single threaded implementation. 
+
