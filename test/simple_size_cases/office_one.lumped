@@ -1,0 +1,9 @@
+mail.example.com
+(mail,www)1.example.com
+www(2-5).example.com
+vpn.(east,west).example.com
+ad(1-3).(chi,lax,lon,sin).example.com
+ns(01-2).(chi,sin).example.com
+(mail,ns)(01-2).(lax,lon).example.com
+www(01-3).(lax,sin).example.com 
+wiki.dev.sin.example.com

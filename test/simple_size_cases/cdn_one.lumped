@@ -1,0 +1,4 @@
+origin(01-2).sjc.example.com
+edge(01-2).(boston,dc,lon,mad,sin).example.com
+edge(01-4).(dal,den,la,miam,nyc,sea,slc).example.com
+regioncache(01-6).(dal,den,la,nyc).example.com 

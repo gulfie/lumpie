@@ -5,3 +5,28 @@ note, nested parens tend to not work well.
 
 Generate up some example or reference test sets. 
 
+
+
+One way to figure out what lumpie can do is to get some names and try to make sense out of them. 
+
+
+./gen_random_ipv4_24  to get some IP addresses or ./gen_random_ipv4_24_host a few times. 
+
+shell out the hostnames
+
+e.g. 
+
+for i in `/usr/bin/seq 1 64 ` ; do  
+	./gen_random_ipv4_24_host | awk ' { print $5 } ' | lumpie 
+done
+
+and it's slow and you'd think you may find interesting things... and it takes a while. 
+Most of the IPv4 space is ISP connections or not reverse mapped.   So much for that. 
+
+
+
+
+
+
+
+

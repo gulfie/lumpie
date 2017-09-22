@@ -11,9 +11,11 @@
 #	elements.  The datastructure is one dimentional, thus adjacency is at a premium and 
 #	sometimes it doesn't work out the best.  The best is not well defined from a human ui standpoint
 #
-#	The best thing you can say about a program is that it works, and we needed a functionalish
-#	reference implementation
+#	The best thing you can say about a program is that it works, and we needed a functionalish a reference implementation
+#	
 #
+#
+# 	
 
 
 use strict;

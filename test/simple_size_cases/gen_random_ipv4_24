@@ -1,0 +1,15 @@
+#!/usr/bin/env bash 
+
+
+# prips $(echo $(( $RANDOM % 256)).$(( $RANDOM % 256)).$(( $RANDOM % 256)).0/24 ) |
+
+# prips may not be installed, so meh'
+
+A=$(( $RANDOM % 256))
+B=$(( $RANDOM % 256))
+C=$(( $RANDOM % 256))
+
+for i in $(/usr/bin/seq 0 255) 
+do
+	echo "$A.$B.$C.$i"
+done

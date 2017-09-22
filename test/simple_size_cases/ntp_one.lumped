@@ -1,0 +1,10 @@
+servicentp(01-3).(af,aus,eu,na,nam,sa,sam,sp)1.example.com
+servicentp(01-3).eu(2-3).example.com
+intntp03.ch1.example.com 
+(borderntp,intntp)(01-2).ch1.example.com 
+intntp03.az2.example.com 
+(borderntp,intntp)(01-2).az2.example.com 
+intntp03.kv5.example.com 
+(borderntp,intntp)(01-2).kv5.example.com 
+intntp03.marco9.example.com 
+(borderntp,intntp)(01-2).marco9.example.com 
